@@ -11,11 +11,24 @@ def ler_relatorio_anafas(caminho_relatorio: str):
               "r",
               encoding="iso-8859-1") as relatorio:
         encontrou_contribuicoes = False
+        total_barras = False
         while True:
             linha = relatorio.readline()
             if len(linha) == 0:
                 break
             # Senão, ainda tem arquivo pra ler
+            if "      Total:" in linha:
+                total_barras = True
+
+            if total_barras:
+                for _ in range(6):
+                    relatorio.readline()
+                while True:
+                    linha = relatorio.readline()
+                    if len(linha) <= 3:
+                        total_barras = False
+                        break
+                    barras_submetidas.append(int(linha[1:6].strip()))
 
             if "2) Contribuições de corrente" in linha:
                 encontrou_contribuicoes = True
@@ -46,22 +59,16 @@ def ler_relatorio_anafas(caminho_relatorio: str):
                                                             curto_tri,
                                                             curto_bif))
 
-    return line_outs
+    return line_outs, barras_submetidas
 
 if __name__ == "__main__":
 
     caminho_planilha = "C:\\Users\\Joyce ONS\\Desktop\\Joyce ONS\\5- EGP\\Curto-Circuito\\_automatizar processos\\_entrega final\\_META_LINE OUT 2021_R1.xlsx" # noqa
     caminho_relatorio = "C:\\Users\\Joyce ONS\\Desktop\\Joyce ONS\\5- EGP\\Curto-Circuito\\_automatiza ANAFAS\\relatorio anafas tres barras.rel"
-    line_outs = ler_relatorio_anafas(caminho_relatorio)
-    print(type(line_outs[10].barra_de))
-    print(line_outs[10].barra_de)
-    print(line_outs[10].barra_para)
-    print(line_outs[10].curto_mono)
-    print(line_outs[10].curto_tri)
-    print(line_outs[10].curto_bif)
-
+    [line_outs, barras_submetidass] = ler_relatorio_anafas(caminho_relatorio)
     df = pd.read_excel(caminho_planilha, "Dados Disjuntores", header=1)
 
+    
 
     # df.columns
     # disj_1257 = df.loc[(df["Barra DE"] == 1257) & (df["Barra PARA"] == 1219), "Monofásico (%)"]
