@@ -104,6 +104,33 @@ def calcula_percent(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[filtro_vago, "Bifásico-Terra (%)"] = np.nan
     return df
 
+def analisa_superacao(df: pd.DataFrame) -> pd.DataFrame:
+
+    def _filtra_alerta(coluna: str) -> pd.Series:
+        alerta_inferior = df[coluna] >= 90
+        alerta_superior = df[coluna] < 100
+        return alerta_inferior & alerta_superior
+
+    def _condicao_alerta() -> pd.Series:
+        alerta_mono = _filtra_alerta("Monofásico (%)")
+        alerta_tri = _filtra_alerta("Trifásico (%)")
+        alerta_bif = _filtra_alerta("Bifásico-Terra (%)")
+        return alerta_mono | alerta_tri | alerta_bif
+
+    def _filtra_superado(coluna: str) -> pd.Series:
+        return df[coluna] >=100
+
+    def _condicao_superado() -> pd.Series:
+        superado_mono = _filtra_superado("Monofásico (%)")
+        superado_tri = _filtra_superado("Trifásico (%)")
+        superado_bif = _filtra_superado("Bifásico-Terra (%)")
+        return superado_mono | superado_tri | superado_bif
+
+    condicoes = [_condicao_superado(), _condicao_alerta()]
+    status = ["Superado", "Alerta"]
+    df["Situação"] = np.select(condicoes, status, default="Ok")
+    return df
+
 def atribui_curto(df: pd.DataFrame,
                   line_outs: List[DadosDisjuntor],
                   curto_barras: List[DadosBarra]) -> pd.DataFrame:
@@ -129,16 +156,18 @@ def atribui_curto(df: pd.DataFrame,
         df_lineout.loc[filtro_de & filtro_para, "Bifásico-Terra (kA)"] = curto_barra.curto_bif
 
     df = calcula_percent(df_lineout)
+    df = analisa_superacao(df)
  
     return df
+
 
 
 if __name__ == "__main__":
 
     dir_base = "C:\\Users\\Joyce ONS\\Desktop\\Joyce ONS\\5- EGP\\Curto-Circuito"
     caminho_planilha = join(dir_base, "_automatizar processos\\_entrega final\\_META_LINE OUT 2026_R1.xlsx") # noqa
-    caminho_relatorio = join(dir_base,"_automatiza ANAFAS\\lineout399_depois.rel")
-    caminho_planilha_saida = "_automatiza ANAFAS\\lineout399_depois.xlsx"
+    caminho_relatorio = join(dir_base,"_automatiza ANAFAS\\lineout399_antes.rel")
+    caminho_planilha_saida = "_automatiza ANAFAS\\lineout399_antes.xlsx"
     line_outs, curto_barras = ler_relatorio_anafas(caminho_relatorio)
     df = pd.read_excel(caminho_planilha, "Dados Disjuntores", header=1)
 
